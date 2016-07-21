@@ -107,6 +107,9 @@ class ForemanInventory(object):
         self.foreman_user = config.get('foreman', 'user')
         self.foreman_pw = config.get('foreman', 'password')
         self.foreman_ssl_verify = config.getboolean('foreman', 'ssl_verify')
+        if not self.foreman_ssl_verify:
+            from requests.packages.urllib3.exceptions import InsecureRequestWarning
+            requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
         # Ansible related
         try:
