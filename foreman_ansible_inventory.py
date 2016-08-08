@@ -23,6 +23,7 @@ import ConfigParser
 import copy
 import os
 import re
+import sys
 from time import time
 import requests
 from requests.auth import HTTPBasicAuth
@@ -229,8 +230,14 @@ class ForemanInventory(object):
             dns_name = host['name']
 
             # Create ansible groups for hostgroup, environment, location and organization
-            for group in ['hostgroup', 'environment', 'location', 'organization']:
+            for group in ['hostgroup', 'environment', 'location', 'organization', 'lifecycle_environment']:
                 val = host.get('%s_name' % group)
+                if val:
+                    safe_key = self.to_safe('%s%s_%s' % (self.group_prefix, group, val.lower()))
+                    self.push(self.inventory, safe_key, dns_name)
+                    
+            for group in ['lifecycle_environment', 'content_view']:
+                val = host.get('content_facet_attributes', {}).get('%s_name' % group)
                 if val:
                     safe_key = self.to_safe('%s%s_%s' % (self.group_prefix, group, val.lower()))
                     self.push(self.inventory, safe_key, dns_name)
