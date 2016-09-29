@@ -21,7 +21,6 @@
 from __future__ import print_function
 
 import argparse
-import ConfigParser
 import copy
 import os
 import re
@@ -29,6 +28,12 @@ import requests
 from requests.auth import HTTPBasicAuth
 import sys
 from time import time
+
+try:
+    import ConfigParser
+except ImportError:
+    import configparser as ConfigParser
+
 
 try:
     import json
