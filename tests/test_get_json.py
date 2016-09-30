@@ -25,11 +25,11 @@ class TestGetJson(unittest.TestCase):
                       status=200)
 
         ret = self.inv._get_hosts()
-        self.assertEqual(sorted(ret),
-                         sorted([{u'name': u'foo'},
-                                 {u'name': u'bar'},
-                                 {u'name': u'foo'},
-                                 {u'name': u'bar'}]))
+        self.assertEqual(ret,
+                         [{u'name': u'foo'},
+                          {u'name': u'bar'},
+                          {u'name': u'foo'},
+                          {u'name': u'bar'}])
         self.assertEqual(len(responses.calls), 2)
         self.assertEqual(responses.calls[0].request.url,
                          '%s?per_page=250&page=1' % url)
