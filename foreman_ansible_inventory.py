@@ -242,7 +242,7 @@ class ForemanInventory(object):
         if len(ret.values()) == 0:
             facts = {}
         elif len(ret.values()) == 1:
-            facts = ret.values()[0]
+            facts = list(ret.values())[0]
         else:
             raise ValueError("More than one set of facts returned for '%s'" % host)
         return facts
