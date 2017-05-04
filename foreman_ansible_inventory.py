@@ -148,6 +148,13 @@ class ForemanInventory(object):
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             self.want_facts = True
 
+        try:
+            skip_host_patterns = config.get('ansible', 'skip_host_patterns')
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            skip_host_patterns = "[]"
+
+        self.skip_host_patterns = eval(skip_host_patterns)
+
         # Cache related
         try:
             cache_path = os.path.expanduser(config.get('cache', 'path'))
@@ -265,49 +272,58 @@ class ForemanInventory(object):
         for host in self._get_hosts():
             dns_name = host['name']
 
-            # Create ansible groups for hostgroup
-            group = 'hostgroup'
-            val = host.get('%s_title' % group) or host.get('%s_name' % group)
-            if val:
-                safe_key = self.to_safe('%s%s_%s' % (self.group_prefix, group, val.lower()))
-                self.push(self.inventory, safe_key, dns_name)
+            skip_host = False
+            for pattern in self.skip_host_patterns:
+                # Skip the host if the pattern is found
+                if pattern in dns_name:
+                    skip_host = True
+                    break
 
-            # Create ansible groups for environment, location and organization
-            for group in ['environment', 'location', 'organization']:
-                val = host.get('%s_name' % group)
+            if not skip_host:
+                # Create ansible groups for hostgroup
+                group = 'hostgroup'
+                val = host.get('%s_title' % group) or host.get('%s_name' % group)
                 if val:
                     safe_key = self.to_safe('%s%s_%s' % (self.group_prefix, group, val.lower()))
                     self.push(self.inventory, safe_key, dns_name)
 
-            for group in ['lifecycle_environment', 'content_view']:
-                val = host.get('content_facet_attributes', {}).get('%s_name' % group)
-                if val:
-                    safe_key = self.to_safe('%s%s_%s' % (self.group_prefix, group, val.lower()))
-                    self.push(self.inventory, safe_key, dns_name)
+                # Create ansible groups for environment, location and organization
+                for group in ['environment', 'location', 'organization']:
+                    val = host.get('%s_name' % group)
+                    if val:
+                        safe_key = self.to_safe('%s%s_%s' % (self.group_prefix, group, val.lower()))
+                        self.push(self.inventory, safe_key, dns_name)
 
-            params = self._resolve_params(host)
+                for group in ['lifecycle_environment', 'content_view']:
+                    val = host.get('content_facet_attributes', {}).get('%s_name' % group)
+                    if val:
+                        safe_key = self.to_safe('%s%s_%s' % (self.group_prefix, group, val.lower()))
+                        self.push(self.inventory, safe_key, dns_name)
 
-            # Ansible groups by parameters in host groups and Foreman host
-            # attributes.
-            groupby = copy.copy(params)
-            for k, v in host.items():
-                if isinstance(v, basestring):
-                    groupby[k] = self.to_safe(v)
-                elif isinstance(v, int):
-                    groupby[k] = v
+                params = self._resolve_params(host)
 
-            # The name of the ansible groups is given by group_patterns:
-            for pattern in self.group_patterns:
-                try:
-                    key = pattern.format(**groupby)
-                    self.push(self.inventory, key, dns_name)
-                except KeyError:
-                    pass  # Host not part of this group
+                # Ansible groups by parameters in host groups and Foreman host
+                # attributes.
+                groupby = copy.copy(params)
+                for k, v in host.items():
+                    if isinstance(v, basestring):
+                        groupby[k] = self.to_safe(v)
+                    elif isinstance(v, int):
+                        groupby[k] = v
 
-            self.cache[dns_name] = host
-            self.params[dns_name] = params
-            self.facts[dns_name] = self._get_facts(host)
-            self.push(self.inventory, 'all', dns_name)
+                # The name of the ansible groups is given by group_patterns:
+                for pattern in self.group_patterns:
+                    try:
+                        key = pattern.format(**groupby)
+                        self.push(self.inventory, key, dns_name)
+                    except KeyError:
+                        pass  # Host not part of this group
+
+                self.cache[dns_name] = host
+                self.params[dns_name] = params
+                self.facts[dns_name] = self._get_facts(host)
+                self.push(self.inventory, 'all', dns_name)
+
         self._write_cache()
 
     def _write_cache(self):

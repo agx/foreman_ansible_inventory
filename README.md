@@ -106,4 +106,11 @@ by recursively resolving the hostgroups, getting the parameter keys
 and values and doing a Python *string.format()* like replacement on
 it.
 
+If you want to exclude hosts from the inventory you can configure the *skip\_host_patterns* like:
+
+    [ansible]
+    skip_host_patterns = ["somehost", "example.com"]
+
+This excludes hosts with the "somehost" or the "example.com" strings.
+
 [1]: http://docs.ansible.com/intro_dynamic_inventory.html
