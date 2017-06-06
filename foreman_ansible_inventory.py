@@ -189,7 +189,7 @@ class ForemanInventory(object):
         results = []
         s = self._get_session()
         while True:
-            ret = s.get(url, params={'page': page, 'per_page': 250})
+            ret = s.get(url, params={'page': page, 'per_page': 1000})
             if ignore_errors and ret.status_code in ignore_errors:
                 break
             ret.raise_for_status()
