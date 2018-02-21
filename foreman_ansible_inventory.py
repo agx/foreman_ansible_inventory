@@ -28,6 +28,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 import sys
 from time import time
+from urllib import urlencode
 
 try:
     import ConfigParser
@@ -126,6 +127,7 @@ class ForemanInventory(object):
             self.foreman_user = config.get('foreman', 'user')
             self.foreman_pw = config.get('foreman', 'password')
             self.foreman_ssl_verify = config.getboolean('foreman', 'ssl_verify')
+            self.foreman_search_query = config.get('foreman', 'search_query')
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError) as e:
             print("Error parsing configuration: %s" % e, file=sys.stderr)
             return False
@@ -213,7 +215,8 @@ class ForemanInventory(object):
         return results
 
     def _get_hosts(self):
-        return self._get_json("%s/api/v2/hosts" % self.foreman_url)
+        myurl = self.foreman_url + "/api/v2/hosts" + "/?" + urlencode([('search', '' + str(self.foreman_search_query))])
+        return self._get_json(myurl)
 
     def _get_hostgroup_by_id(self, hid):
         if hid not in self.hostgroups:
