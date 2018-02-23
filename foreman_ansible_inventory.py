@@ -34,7 +34,6 @@ try:
 except ImportError:
     import configparser as ConfigParser
 
-
 try:
     import json
 except ImportError:
@@ -49,11 +48,11 @@ class ForemanInventory(object):
 
     def __init__(self):
         self.inventory = dict()  # A list of groups and the hosts in that group
-        self.cache = dict()   # Details about hosts in the inventory
+        self.cache = dict()  # Details about hosts in the inventory
         self.params = dict()  # Params of each host
-        self.facts = dict()   # Facts of each host
+        self.facts = dict()  # Facts of each host
         self.hostgroups = dict()  # host groups
-        self.session = None   # Requests session
+        self.session = None  # Requests session
 
     def run(self):
         if not self._read_settings():
@@ -105,7 +104,7 @@ class ForemanInventory(object):
             current_time = time()
             if (mod_time + self.cache_max_age) > current_time:
                 if (os.path.isfile(self.cache_path_inventory) and
-                    os.path.isfile(self.cache_path_params) and
+                        os.path.isfile(self.cache_path_params) and
                         os.path.isfile(self.cache_path_facts)):
                     return True
         return False
@@ -129,6 +128,13 @@ class ForemanInventory(object):
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError) as e:
             print("Error parsing configuration: %s" % e, file=sys.stderr)
             return False
+
+        try:
+            host_filters = config.get('foreman', 'host_filters')
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            host_filters = None
+
+        self.host_filters = host_filters
 
         # Ansible related
         try:
@@ -184,12 +190,12 @@ class ForemanInventory(object):
             self.session.verify = self.foreman_ssl_verify
         return self.session
 
-    def _get_json(self, url, ignore_errors=None):
+    def _get_json(self, url, ignore_errors=None, params={}):
         page = 1
         results = []
         s = self._get_session()
         while True:
-            ret = s.get(url, params={'page': page, 'per_page': 250})
+            ret = s.get(url, params=params.update({'page': page, 'per_page': 250}))
             if ignore_errors and ret.status_code in ignore_errors:
                 break
             ret.raise_for_status()
@@ -212,8 +218,11 @@ class ForemanInventory(object):
                 break
         return results
 
-    def _get_hosts(self):
-        return self._get_json("%s/api/v2/hosts" % self.foreman_url)
+    def _get_hosts(self, search_filters=None):
+        query = {}
+        if search_filters:
+            query = dict(search=search_filters)
+        return self._get_json("%s/api/v2/hosts" % self.foreman_url, params=query)
 
     def _get_hostgroup_by_id(self, hid):
         if hid not in self.hostgroups:
@@ -262,7 +271,7 @@ class ForemanInventory(object):
         self.groups = dict()
         self.hosts = dict()
 
-        for host in self._get_hosts():
+        for host in self._get_hosts(self.host_filters):
             dns_name = host['name']
 
             # Create ansible groups for hostgroup
