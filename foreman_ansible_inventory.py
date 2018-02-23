@@ -130,6 +130,14 @@ class ForemanInventory(object):
             print("Error parsing configuration: %s" % e, file=sys.stderr)
             return False
 
+        try:
+            host_filters = config.get('foreman', 'host_filters')
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            host_filters = None
+
+        self.host_filters = host_filters
+
+
         # Ansible related
         try:
             group_patterns = config.get('ansible', 'group_patterns')
@@ -184,12 +192,12 @@ class ForemanInventory(object):
             self.session.verify = self.foreman_ssl_verify
         return self.session
 
-    def _get_json(self, url, ignore_errors=None):
+    def _get_json(self, url, ignore_errors=None, params={}):
         page = 1
         results = []
         s = self._get_session()
         while True:
-            ret = s.get(url, params={'page': page, 'per_page': 250})
+            ret = s.get(url, params=params.update({'page': page, 'per_page': 250}))
             if ignore_errors and ret.status_code in ignore_errors:
                 break
             ret.raise_for_status()
@@ -212,8 +220,11 @@ class ForemanInventory(object):
                 break
         return results
 
-    def _get_hosts(self):
-        return self._get_json("%s/api/v2/hosts" % self.foreman_url)
+    def _get_hosts(self, search_filters=None):
+        query = {}
+        if search_filters:
+	      query = dict(search=search_filters)
+        return self._get_json("%s/api/v2/hosts" % self.foreman_url, params=query)
 
     def _get_hostgroup_by_id(self, hid):
         if hid not in self.hostgroups:
@@ -262,7 +273,7 @@ class ForemanInventory(object):
         self.groups = dict()
         self.hosts = dict()
 
-        for host in self._get_hosts():
+        for host in self._get_hosts(self.host_filters):
             dns_name = host['name']
 
             # Create ansible groups for hostgroup
