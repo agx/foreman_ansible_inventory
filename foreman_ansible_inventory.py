@@ -34,7 +34,6 @@ try:
 except ImportError:
     import configparser as ConfigParser
 
-
 try:
     import json
 except ImportError:
@@ -49,11 +48,11 @@ class ForemanInventory(object):
 
     def __init__(self):
         self.inventory = dict()  # A list of groups and the hosts in that group
-        self.cache = dict()   # Details about hosts in the inventory
+        self.cache = dict()  # Details about hosts in the inventory
         self.params = dict()  # Params of each host
-        self.facts = dict()   # Facts of each host
+        self.facts = dict()  # Facts of each host
         self.hostgroups = dict()  # host groups
-        self.session = None   # Requests session
+        self.session = None  # Requests session
 
     def run(self):
         if not self._read_settings():
@@ -105,7 +104,7 @@ class ForemanInventory(object):
             current_time = time()
             if (mod_time + self.cache_max_age) > current_time:
                 if (os.path.isfile(self.cache_path_inventory) and
-                    os.path.isfile(self.cache_path_params) and
+                        os.path.isfile(self.cache_path_params) and
                         os.path.isfile(self.cache_path_facts)):
                     return True
         return False
@@ -136,7 +135,6 @@ class ForemanInventory(object):
             host_filters = None
 
         self.host_filters = host_filters
-
 
         # Ansible related
         try:
@@ -223,7 +221,7 @@ class ForemanInventory(object):
     def _get_hosts(self, search_filters=None):
         query = {}
         if search_filters:
-	      query = dict(search=search_filters)
+            query = dict(search=search_filters)
         return self._get_json("%s/api/v2/hosts" % self.foreman_url, params=query)
 
     def _get_hostgroup_by_id(self, hid):
