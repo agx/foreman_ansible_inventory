@@ -25,6 +25,8 @@ import copy
 import os
 import re
 import requests
+import urllib3
+
 from requests.auth import HTTPBasicAuth
 import sys
 from time import time
@@ -178,6 +180,9 @@ class ForemanInventory(object):
         self.args = parser.parse_args()
 
     def _get_session(self):
+        if not self.foreman_ssl_verify:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
         if not self.session:
             self.session = requests.session()
             self.session.auth = HTTPBasicAuth(self.foreman_user, self.foreman_pw)
